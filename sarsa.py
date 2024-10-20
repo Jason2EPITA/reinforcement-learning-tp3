@@ -47,6 +47,7 @@ class SarsaAgent:
         """
         value = 0.0
         # BEGIN SOLUTION
+        value = max(self._qvalues[state].values(), default=0.0)
         # END SOLUTION
         return value
 
@@ -55,12 +56,28 @@ class SarsaAgent:
     ):
         """
         You should do your Q-Value update here (s'=next_state):
-           TD_target(s, a, r, s', a') = r + gamma * Q_old(s', a')
-           TD_error(s, a, r, s', a') = TD_target(s, a, r, s', a') - Q_old(s, a)
-           Q_new(s, a) := Q_old(s, a) + learning_rate * TD_error(s, a, R(s, a), s', a')
+           TD_target(s') = R(s, a) + gamma * V(s')
+           TD_error(s', a) = TD_target(s') - Q(s, a)
+           Q_new(s, a) := Q(s, a) + alpha * TD_error(s', a)
         """
         q_value = 0.0
         # BEGIN SOLUTION
+        current_q = self.get_qvalue(state, action)
+        next_action = self.get_action(next_state)
+        next_q = self.get_qvalue(next_state, next_action)
+
+        # Suppose the maximum reward is 20
+        normalized_reward = reward / 20.0
+
+        td_error = (normalized_reward + self.gamma * next_q) - current_q
+
+        # Clip the TD error
+        if td_error > 1:
+            td_error = 1
+        elif td_error < -1:
+            td_error = -1
+
+        q_value = current_q + self.learning_rate * td_error
         # END SOLUTION
 
         self.set_qvalue(state, action, q_value)
@@ -83,6 +100,21 @@ class SarsaAgent:
         action = self.legal_actions[0]
 
         # BEGIN SOLUTION
+        for attr, value in [('epsilon', 1.0), ('epsilon_decay', 0.9995), ('min_epsilon', 0.01)]:
+            if not hasattr(self, attr):
+                setattr(self, attr, value)
+
+        self.epsilon = max(self.epsilon * self.epsilon_decay, self.min_epsilon)
+
+        if random.random() >= self.epsilon:
+            # Exploitation: choose the best action
+            action = self.get_best_action(state)
+        else:
+            # Exploration: choose a random action, favoring less explored actions
+            action_counts = [self.get_qvalue(state, a) for a in self.legal_actions]
+            min_count = min(action_counts)
+            actions = [a for a, count in zip(self.legal_actions, action_counts) if count == min_count]
+            action = random.choice(actions)
         # END SOLUTION
 
         return action

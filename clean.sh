@@ -1,0 +1,1 @@
+rm -rf __pycache__/ records_q/ records_q_eps/  records_sarsa/
